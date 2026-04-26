@@ -19,7 +19,7 @@
         width: 100vw; height: 100vh;
         background: rgba(0, 0, 0, 0.85);
         z-index: 9999;
-        display: none; /* Mặc định ẩn */
+        display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -50,7 +50,7 @@
   <body>
     <div id="force-play-overlay">
       <h2>Đã nhận diện thành công!</h2>
-      <div class="play-btn">Chạm để phát Video</div>
+      <div class="play-btn">Chạm để bật AR / Video</div>
     </div>
 
     <a-scene 
@@ -64,6 +64,7 @@
         <video 
           id="arVideo" 
           src="./video.mp4" 
+          autoplay="true"
           loop="true" 
           crossorigin="anonymous"
           webkit-playsinline="true"
@@ -90,24 +91,37 @@
       const video = document.querySelector("#arVideo");
       const targetEntity = document.querySelector('[mindar-image-target]');
       const overlay = document.querySelector("#force-play-overlay");
+      let videoUnlocked = false;
 
-      // Xử lý khi người dùng chạm vào màn hình đen
-      overlay.addEventListener("click", () => {
-        video.play();
-        overlay.style.display = "none";
+      // Cần 1 thao tác chạm để "mở khóa" video trên mobile browser
+      overlay.addEventListener("click", async () => {
+        try {
+          video.muted = true;
+          video.playsInline = true;
+          await video.play();
+          video.pause();
+          video.currentTime = 0;
+          videoUnlocked = true;
+          overlay.style.display = "none";
+        } catch (error) {
+          overlay.style.display = "flex";
+        }
       });
 
       // Bắt sự kiện quét trúng ảnh
       targetEntity.addEventListener("targetFound", () => {
-        // Thử ép video tự động chạy
+        if (!videoUnlocked) {
+          overlay.style.display = "flex";
+          return;
+        }
+
+        // Video đã được unlock -> thử phát khi nhận diện target
         let playPromise = video.play();
         
         if (playPromise !== undefined) {
           playPromise.then(() => {
-            // Video tự chạy mượt mà, không cần làm gì thêm
             overlay.style.display = "none";
           }).catch(error => {
-            // Trình duyệt chặn tự động phát! Bật màn hình đen lên bắt click
             overlay.style.display = "flex";
           });
         }
