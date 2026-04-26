@@ -1,27 +1,64 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Web AR Video</title>
+    
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
     <style>
-      body { margin: 0; overflow: hidden; }
-      #loading {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        color: white; font-family: sans-serif; z-index: 10;
+      body { margin: 0; overflow: hidden; background-color: #000; }
+      
+      /* Màn hình đen chặn lại nếu trình duyệt không cho video tự chạy */
+      #force-play-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        display: none; /* Mặc định ẩn */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: sans-serif;
+        text-align: center;
+      }
+      
+      .play-btn {
+        background: #FF3B30;
+        color: white;
+        padding: 15px 40px;
+        border-radius: 30px;
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 20px;
+        text-transform: uppercase;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
       }
     </style>
   </head>
   <body>
-    <div id="loading">Đang tải AR...</div>
+    <div id="force-play-overlay">
+      <h2>Đã nhận diện thành công!</h2>
+      <div class="play-btn">Chạm để phát Video</div>
+    </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./anhnhandien.mind; uiLoading: #loading;" 
+      mindar-image="imageTargetSrc: ./anhnhandien.mind; filterMinCF: 0.1; filterBeta: 10" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false"
-      cursor="fuse: false; rayOrigin: mouse"
-      raycaster="objects: .clickable">
+      device-orientation-permission-ui="enabled: false">
       
       <a-assets>
         <video 
@@ -29,49 +66,58 @@
           src="./video.mp4" 
           loop="true" 
           crossorigin="anonymous"
-          webkit-playsinline
-          playsinline
-          muted>
+          webkit-playsinline="true"
+          playsinline="true"
+          muted="true"
+          preload="auto">
         </video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="target1" mindar-image-target="targetIndex: 0">
-        <a-video 
-          id="videoEntity"
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-plane 
           src="#arVideo" 
-          width="1" 
+          position="0 0 0" 
           height="0.56" 
-          position="0 0 0"
-          class="clickable">
-        </a-video>
+          width="1" 
+          rotation="0 0 0">
+        </a-plane>
       </a-entity>
     </a-scene>
 
     <script>
-      const videoAsset = document.querySelector("#arVideo");
-      const videoEntity = document.querySelector("#videoEntity");
-      const loading = document.querySelector("#loading");
-      const scene = document.querySelector('a-scene');
+      const video = document.querySelector("#arVideo");
+      const targetEntity = document.querySelector('[mindar-image-target]');
+      const overlay = document.querySelector("#force-play-overlay");
 
-      scene.addEventListener("arReady", () => {
-        loading.style.display = "none";
-        videoAsset.pause();
-        videoAsset.currentTime = 0;
+      // Xử lý khi người dùng chạm vào màn hình đen
+      overlay.addEventListener("click", () => {
+        video.play();
+        overlay.style.display = "none";
       });
 
-      videoEntity.addEventListener('click', () => {
-        if (videoAsset.paused) {
-          videoAsset.muted = false;
-          videoAsset.play();
-        } else {
-          videoAsset.pause();
+      // Bắt sự kiện quét trúng ảnh
+      targetEntity.addEventListener("targetFound", () => {
+        // Thử ép video tự động chạy
+        let playPromise = video.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Video tự chạy mượt mà, không cần làm gì thêm
+            overlay.style.display = "none";
+          }).catch(error => {
+            // Trình duyệt chặn tự động phát! Bật màn hình đen lên bắt click
+            overlay.style.display = "flex";
+          });
         }
       });
 
-      const target = document.querySelector('#target1');
-      target.addEventListener("targetLost", () => videoAsset.pause());
+      // Bắt sự kiện khi điện thoại lia ra khỏi ảnh
+      targetEntity.addEventListener("targetLost", () => {
+        video.pause();
+        overlay.style.display = "none"; // Giấu overlay đi (nếu đang hiện)
+      });
     </script>
   </body>
 </html>
