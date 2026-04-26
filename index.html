@@ -5,34 +5,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    
     <style>
-      body { margin: 0; overflow: hidden; }
-      /* Nút bấm để kích hoạt âm thanh và video (trình duyệt yêu cầu tương tác người dùng) */
-      #playButton {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 999;
-        padding: 15px 30px;
-        background: #2196F3;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        font-family: sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        cursor: pointer;
+      body { margin: 0; overflow: hidden; background: #000; }
+      #overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 999; display: flex; justify-content: center; align-items: center;
+        background: rgba(0,0,0,0.5); color: white; font-family: sans-serif;
+        text-align: center; padding: 20px; box-sizing: border-box;
       }
     </style>
   </head>
   <body>
-    <button id="playButton">BẮT ĐẦU TRẢI NGHIỆM AR</button>
+    <div id="overlay">CHẠM VÀO MÀN HÌNH<br>ĐỂ BẮT ĐẦU TRẢI NGHIỆM</div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./anhnhandien.mind;" 
+      mindar-image="imageTargetSrc: ./anhnhandien.mind; autoStart: true;" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
@@ -43,38 +30,43 @@
           loop="true" 
           crossorigin="anonymous"
           webkit-playsinline
-          playsinline>
+          playsinline
+          muted>
         </video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
+      <a-entity id="target1" mindar-image-target="targetIndex: 0">
         <a-video 
           src="#arVideo" 
           width="1" 
           height="0.56" 
-          position="0 0 0" 
-          rotation="0 0 0">
+          position="0 0 0">
         </a-video>
       </a-entity>
     </a-scene>
 
     <script>
-      const btn = document.querySelector("#playButton");
       const video = document.querySelector("#arVideo");
+      const overlay = document.querySelector("#overlay");
+      const target = document.querySelector('#target1');
 
-      // Xử lý khi bấm nút: Phát video và ẩn nút đi
-      btn.addEventListener('click', () => {
+      // Chạm bất cứ đâu trên màn hình để kích hoạt âm thanh
+      window.addEventListener('click', () => {
+        video.muted = false;
         video.play();
-        btn.style.display = "none";
+        overlay.style.display = "none";
       });
 
-      // Lắng nghe sự kiện khi tìm thấy ảnh nhận diện (tùy chọn thêm hiệu ứng)
-      const exampleTarget = document.querySelector('[mindar-image-target]');
-      exampleTarget.addEventListener("targetFound", event => {
-        console.log("Đã tìm thấy ảnh nhận diện!");
+      window.addEventListener('touchstart', () => {
+        video.muted = false;
+        video.play();
+        overlay.style.display = "none";
       });
+
+      target.addEventListener("targetFound", () => video.play());
+      target.addEventListener("targetLost", () => video.pause());
     </script>
   </body>
 </html>
