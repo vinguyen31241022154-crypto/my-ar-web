@@ -5,27 +5,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    
     <style>
       body { margin: 0; overflow: hidden; }
-      #playButton {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 999;
-        padding: 15px 30px;
-        background: #2196F3;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        font-family: sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        cursor: pointer;
-      }
-      /* Hiển thị dòng chữ đang tải để người dùng biết là app đang chạy */
       #loading {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         color: white; font-family: sans-serif; z-index: 10;
@@ -34,10 +15,9 @@
   </head>
   <body>
     <div id="loading">Đang tải AR...</div>
-    <button id="playButton" style="display: none;">BẮT ĐẦU TRẢI NGHIỆM AR</button>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./anhnhandien.mind; uiLoading: #loading;" 
+      mindar-image="imageTargetSrc: ./anhnhandien.mind; uiLoading: #loading; autoStart: true;" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
@@ -60,38 +40,26 @@
           src="#arVideo" 
           width="1" 
           height="0.56" 
-          position="0 0 0" 
-          rotation="0 0 0">
+          position="0 0 0.01">
         </a-video>
       </a-entity>
     </a-scene>
 
     <script>
-      const btn = document.querySelector("#playButton");
       const video = document.querySelector("#arVideo");
       const loading = document.querySelector("#loading");
-
-      // Hiện nút khi hệ thống AR đã sẵn sàng
-      document.querySelector('a-scene').addEventListener("arReady", (event) => {
-        loading.style.display = "none";
-        btn.style.display = "block";
-      });
-
-      btn.addEventListener('click', () => {
-        video.play();
-        // Sau khi đã tương tác, ta có thể mở tiếng lại (nếu muốn)
-        video.muted = false; 
-        btn.style.display = "none";
-      });
-
-      // Logic tự động phát/dừng khi đưa camera ra xa hoặc vào gần
+      const scene = document.querySelector('a-scene');
       const target = document.querySelector('#target1');
-      target.addEventListener("targetFound", event => {
-        console.log("Tìm thấy ảnh!");
+
+      scene.addEventListener("arReady", () => {
+        loading.style.display = "none";
+      });
+
+      target.addEventListener("targetFound", () => {
         video.play();
       });
-      target.addEventListener("targetLost", event => {
-        console.log("Mất dấu ảnh!");
+
+      target.addEventListener("targetLost", () => {
         video.pause();
       });
     </script>
