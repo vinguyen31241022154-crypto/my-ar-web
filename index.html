@@ -1,136 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Web AR Video</title>
-    
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    
+
+    <script src="[aframe.io](https://aframe.io/releases/1.5.0/aframe.min.js)"></script>
+    <script src="[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js)"></script>
+
     <style>
-      body { margin: 0; overflow: hidden; background-color: #000; }
-      
-      /* Màn hình đen chặn lại nếu trình duyệt không cho video tự chạy */
-      #force-play-overlay {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-family: sans-serif;
-        text-align: center;
-      }
-      
-      .play-btn {
-        background: #FF3B30;
-        color: white;
-        padding: 15px 40px;
-        border-radius: 30px;
-        font-size: 18px;
-        font-weight: bold;
-        margin-top: 20px;
-        text-transform: uppercase;
-        animation: pulse 1.5s infinite;
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: Arial, sans-serif;
       }
 
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+      #status {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-size: 14px;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      #status.hidden {
+        display: none;
+      }
+
+      #error {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.88);
+        color: #fff;
+      }
+
+      #error.show {
+        display: flex;
+      }
+
+      .error-box {
+        max-width: 360px;
+        line-height: 1.5;
       }
     </style>
   </head>
+
   <body>
-    <div id="force-play-overlay">
-      <h2>Đã nhận diện thành công!</h2>
-      <div class="play-btn">Chạm để bật AR / Video</div>
+    <div id="status">Đang khởi động AR...</div>
+
+    <div id="error">
+      <div class="error-box" id="errorText">
+        Không thể khởi động camera hoặc video.
+      </div>
     </div>
 
-    <a-scene 
-      mindar-image="imageTargetSrc: ./anhnhandien.mind; filterMinCF: 0.1; filterBeta: 10" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
-      
-      <a-assets>
-        <video 
-          id="arVideo" 
-          src="./video.mp4" 
-          autoplay="true"
-          loop="true" 
+    <a-scene
+      mindar-image="imageTargetSrc: ./anhnhandien.mind; autoStart: true; uiScanning: true; uiLoading: true;"
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      embedded
+    >
+      <a-assets timeout="10000">
+        <video
+          id="arVideo"
+          src="./video.mp4"
+          preload="auto"
+          loop
+          muted
+          playsinline
+          webkit-playsinline
           crossorigin="anonymous"
-          webkit-playsinline="true"
-          playsinline="true"
-          muted="true"
-          preload="auto">
-        </video>
+        ></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane 
-          src="#arVideo" 
-          position="0 0 0" 
-          height="0.56" 
-          width="1" 
-          rotation="0 0 0">
-        </a-plane>
+      <a-entity mindar-image-target="targetIndex: 0" id="target">
+        <a-video
+          id="videoPlane"
+          src="#arVideo"
+          position="0 0 0"
+          width="1"
+          height="0.5625"
+        ></a-video>
       </a-entity>
     </a-scene>
 
     <script>
-      const video = document.querySelector("#arVideo");
-      const targetEntity = document.querySelector('[mindar-image-target]');
-      const overlay = document.querySelector("#force-play-overlay");
-      let videoUnlocked = false;
+      const video = document.getElementById("arVideo");
+      const target = document.getElementById("target");
+      const status = document.getElementById("status");
+      const errorBox = document.getElementById("error");
+      const errorText = document.getElementById("errorText");
 
-      // Cần 1 thao tác chạm để "mở khóa" video trên mobile browser
-      overlay.addEventListener("click", async () => {
+      let targetVisible = false;
+      let canPlayVideo = false;
+
+      const showStatus = (text) => {
+        status.textContent = text;
+        status.classList.remove("hidden");
+      };
+
+      const hideStatus = () => {
+        status.classList.add("hidden");
+      };
+
+      const showError = (text) => {
+        errorText.textContent = text;
+        errorBox.classList.add("show");
+      };
+
+      async function prepareVideo() {
         try {
           video.muted = true;
           video.playsInline = true;
+          video.setAttribute("playsinline", "");
+          video.setAttribute("webkit-playsinline", "");
+
+          // Thử autoplay sẵn ngay khi load
           await video.play();
           video.pause();
           video.currentTime = 0;
-          videoUnlocked = true;
-          overlay.style.display = "none";
-        } catch (error) {
-          overlay.style.display = "flex";
+          canPlayVideo = true;
+        } catch (err) {
+          canPlayVideo = false;
+          console.warn("Video autoplay bị chặn:", err);
         }
+      }
+
+      async function playVideoIfPossible() {
+        if (!canPlayVideo) {
+          await prepareVideo();
+        }
+
+        try {
+          await video.play();
+          hideStatus();
+        } catch (err) {
+          console.error("Không phát được video:", err);
+          showError(
+            "Camera đã mở nhưng trình duyệt đang chặn tự phát video. Hãy mở bằng Chrome/Safari mới nhất và đảm bảo video có thuộc tính muted."
+          );
+        }
+      }
+
+      target.addEventListener("targetFound", async () => {
+        targetVisible = true;
+        showStatus("Đã nhận diện ảnh, đang phát video...");
+        await playVideoIfPossible();
       });
 
-      // Bắt sự kiện quét trúng ảnh
-      targetEntity.addEventListener("targetFound", () => {
-        if (!videoUnlocked) {
-          overlay.style.display = "flex";
-          return;
-        }
-
-        // Video đã được unlock -> thử phát khi nhận diện target
-        let playPromise = video.play();
-        
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            overlay.style.display = "none";
-          }).catch(error => {
-            overlay.style.display = "flex";
-          });
-        }
-      });
-
-      // Bắt sự kiện khi điện thoại lia ra khỏi ảnh
-      targetEntity.addEventListener("targetLost", () => {
+      target.addEventListener("targetLost", () => {
+        targetVisible = false;
         video.pause();
-        overlay.style.display = "none"; // Giấu overlay đi (nếu đang hiện)
+        showStatus("Đưa camera vào ảnh để xem video");
+      });
+
+      video.addEventListener("loadeddata", () => {
+        console.log("Video loadeddata");
+      });
+
+      video.addEventListener("playing", () => {
+        console.log("Video is playing");
+      });
+
+      video.addEventListener("error", (e) => {
+        console.error("Lỗi video:", e);
+        showError("Không tải được file video.mp4. Hãy kiểm tra tên file, định dạng và đường dẫn.");
+      });
+
+      window.addEventListener("load", async () => {
+        showStatus("Đang xin quyền camera...");
+        await prepareVideo();
+
+        setTimeout(() => {
+          if (!targetVisible) {
+            showStatus("Đưa camera vào ảnh để xem video");
+          }
+        }, 1500);
       });
     </script>
   </body>
