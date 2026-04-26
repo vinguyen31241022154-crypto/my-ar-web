@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+      body { margin: 0; overflow: hidden; }
+      /* Nút bấm để kích hoạt âm thanh và video (trình duyệt yêu cầu tương tác người dùng) */
+      #playButton {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        padding: 15px 30px;
+        background: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="playButton">BẮT ĐẦU TRẢI NGHIỆM AR</button>
+
+    <a-scene 
+      mindar-image="imageTargetSrc: ./anhnhandien.mind;" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <video 
+          id="arVideo" 
+          src="./video.mp4" 
+          loop="true" 
+          crossorigin="anonymous"
+          webkit-playsinline
+          playsinline>
+        </video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video 
+          src="#arVideo" 
+          width="1" 
+          height="0.56" 
+          position="0 0 0" 
+          rotation="0 0 0">
+        </a-video>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const btn = document.querySelector("#playButton");
+      const video = document.querySelector("#arVideo");
+
+      // Xử lý khi bấm nút: Phát video và ẩn nút đi
+      btn.addEventListener('click', () => {
+        video.play();
+        btn.style.display = "none";
+      });
+
+      // Lắng nghe sự kiện khi tìm thấy ảnh nhận diện (tùy chọn thêm hiệu ứng)
+      const exampleTarget = document.querySelector('[mindar-image-target]');
+      exampleTarget.addEventListener("targetFound", event => {
+        console.log("Đã tìm thấy ảnh nhận diện!");
+      });
+    </script>
+  </body>
+</html>
