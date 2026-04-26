@@ -2,40 +2,76 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    
     <style>
       body { margin: 0; overflow: hidden; }
-      /* Nút Play vì trình duyệt thường chặn video tự chạy có âm thanh */
-      #playButton {
-        position: fixed; top: 10px; left: 10px; z-index: 999;
-        padding: 10px; background: #000; color: #fff; border: none; cursor: pointer;
+      #loading {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        color: white; font-family: sans-serif; z-index: 10;
       }
     </style>
   </head>
   <body>
-    <button id="playButton">Bấm để bắt đầu AR</button>
+    <div id="loading">Đang tải AR...</div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene 
+      mindar-image="imageTargetSrc: ./anhnhandien.mind; uiLoading: #loading;" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false"
+      cursor="fuse: false; rayOrigin: mouse"
+      raycaster="objects: .clickable">
+      
       <a-assets>
-        <video id="arVideo" src="./your-video.mp4" loop="true" crossorigin="anonymous"></video>
+        <video 
+          id="arVideo" 
+          src="./video.mp4" 
+          loop="true" 
+          crossorigin="anonymous"
+          webkit-playsinline
+          playsinline
+          muted>
+        </video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-video src="#arVideo" width="1" height="0.55" position="0 0 0"></a-video>
+      <a-entity id="target1" mindar-image-target="targetIndex: 0">
+        <a-video 
+          id="videoEntity"
+          src="#arVideo" 
+          width="1" 
+          height="0.56" 
+          position="0 0 0"
+          class="clickable">
+        </a-video>
       </a-entity>
     </a-scene>
 
     <script>
-      const btn = document.querySelector("#playButton");
-      const video = document.querySelector("#arVideo");
-      btn.addEventListener('click', () => {
-        video.play();
-        btn.style.display = "none";
+      const videoAsset = document.querySelector("#arVideo");
+      const videoEntity = document.querySelector("#videoEntity");
+      const loading = document.querySelector("#loading");
+      const scene = document.querySelector('a-scene');
+
+      scene.addEventListener("arReady", () => {
+        loading.style.display = "none";
+        videoAsset.pause();
+        videoAsset.currentTime = 0;
       });
+
+      videoEntity.addEventListener('click', () => {
+        if (videoAsset.paused) {
+          videoAsset.muted = false;
+          videoAsset.play();
+        } else {
+          videoAsset.pause();
+        }
+      });
+
+      const target = document.querySelector('#target1');
+      target.addEventListener("targetLost", () => videoAsset.pause());
     </script>
   </body>
 </html>
